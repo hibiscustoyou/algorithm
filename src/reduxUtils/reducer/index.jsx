@@ -3,7 +3,7 @@
 */
 
 import { combineReducers } from 'redux';
-import { HOME_PATH} from "../action-types";
+import {HOME_PATH, INPUT_ARRAY} from "../action-types";
 
 
 const homeKey = (state={}, action) => {
@@ -16,10 +16,20 @@ const homeKey = (state={}, action) => {
     }
 }
 
+const inputArray = (state={}, action) => {
+    switch (action.type) {
+        case INPUT_ARRAY:
+            return action.payload
+        default:
+            return state
+    }
+}
+
 /*
 * 创建全局根 reducer
 */
 export const rootReducer = combineReducers({
     // 利用 combineReducers 方法管理多 reducer，使用规范如下
-    home_key: homeKey
+    home_key: homeKey,
+    input_array: inputArray
 })

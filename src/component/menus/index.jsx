@@ -3,13 +3,12 @@ import { Menu } from 'antd';
 import {Link, withRouter} from "react-router-dom";
 import {connect} from "react-redux";
 
-
 import "./index.less"
 
-import store from "../../reduxUtils/store"
+// import store from "../../reduxUtils/store"
 
 import {HOME_PATH} from "../../reduxUtils/action-types";
-import JsonUtils from "../../utils/jsonUtils"
+import JsonUtils from "../../utils/objectUtils"
 import MenuConfig from "../../config/menuConfig";
 import {IconFont} from "../icons";
 
@@ -39,11 +38,6 @@ class Menus extends Component {
 			openKeys: [openKeys],
 			selectedKeys: [currentPath]
 		};
-		console.log('menus pre', this.state, currentPath, openKeys)
-		// store.subscribe(() => {
-		// 	this.setState(store.getState().home_key)
-		// 	console.log('menus store change', store.getState().home_key)
-		// })
 	}
 	
 	handleClick = value => {
@@ -52,11 +46,9 @@ class Menus extends Component {
 			openKeys: [value.keyPath[1]],
 			selectedKeys: [value.keyPath[0]]
 		})
-		console.log('menu change', value.keyPath[0], value.keyPath[1], this.state)
 	};
 	
 	onOpenChange = openKeys => {
-		console.log('menu open change', openKeys)
 		const latestOpenKey = openKeys.find(key => this.state.openKeys.indexOf(key) === -1);
 		if (this.rootSubmenuKeys.indexOf(latestOpenKey) === -1) {
 			this.setState({ openKeys });
@@ -84,7 +76,7 @@ class Menus extends Component {
 			} else {
 				const childrenItem = item.children.find(childrenItem => childrenItem.key===currentPath);
 				if (childrenItem) {
-					this.openKey = item.key
+					this.openKeys = item.key
 				}
 				
 				// 向 pre 添加 <SubMenu>
@@ -124,7 +116,6 @@ class Menus extends Component {
 			openKeys: openKeys,
 			selectedKeys: currentPath
 		})
-		console.log('menu home did', this.state, currentPath, openKeys, this.getTitle(currentPath))
 	}
 	
 	render() {
