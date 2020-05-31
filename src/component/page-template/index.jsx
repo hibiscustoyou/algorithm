@@ -6,18 +6,17 @@ import {Layout, Typography, Input, Tooltip, Button} from 'antd';
 import {connect} from "react-redux";
 import PropTypes from "prop-types";
 import { Scrollbars } from 'react-custom-scrollbars';
+import _ from 'lodash'
 
 import store from "../../reduxUtils/store"
 
-// 导入自定义组件
 import Menus from "../menus"
+import Histogram from "../histogram";
 
-// 导入样式表
 import "./index.less";
 
-// 导入图片
 import {INPUT_ARRAY} from "../../reduxUtils/action-types";
-import JsonUtils from "../../utils/objectUtils";
+import ObjectUtils from "../../utils/objectUtils";
 import MenuConfig from "../../config/menuConfig";
 import {IconFont} from "../icons";
 import Radios from "../radios";
@@ -27,11 +26,20 @@ import { makeStyles } from '@material-ui/core/styles';
 
 import ArrayUtils from "../../utils/arrayUtils"
 import RegUtils from "../../utils/regUtils"
-import Histogram from "../histogram";
+import {Sorting} from "../../algorithm/sorting"
 
 const { Sider } = Layout;
 const { Title, Text } = Typography;
 const { Search } = Input;
+
+
+function sleep(time) {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve();
+        }, time);
+    });
+}
 
 
 class PageTemplate extends Component {
@@ -41,10 +49,10 @@ class PageTemplate extends Component {
         this.state = this.props.state
     
         const currentPath = this.props.location.pathname;
-        const openKeys = JsonUtils.GetObjectParent(MenuConfig, 'key', currentPath)
+        const openKeys = ObjectUtils.GetObjectParent(MenuConfig, 'key', currentPath)
         let title;
         try {
-            title = JsonUtils.GetObjects(MenuConfig, 'key', currentPath)[0].title
+            title = ObjectUtils.GetObjects(MenuConfig, 'key', currentPath)[0].title
         } catch (e) {
             title = 'Home'
         }
@@ -69,9 +77,9 @@ class PageTemplate extends Component {
 			},
 		}));
         
-        this.state.title = title
-        this.state.openKeys = openKeys
-        this.state.selectedKeys = currentPath
+        // this.state.title = title
+        // this.state.openKeys = openKeys
+        // this.state.selectedKeys = currentPath
         this.state = {
             title: title,
             openKeys: openKeys,
@@ -80,7 +88,8 @@ class PageTemplate extends Component {
             curInput: {
                 add: '',
                 remove: '',
-                find: ''
+                find: '',
+                speed: 1.0
             },
             arrays: []
         }
@@ -105,36 +114,33 @@ class PageTemplate extends Component {
         const text = event.target.value
         const flag = RegUtils.IsMatch(text)
         console.log('page temp addchange', flag, text)
-        if (flag) {
+        if (!flag && text || flag) {
             this.setState({
                 curInput: {
-                    add: parseFloat(text)
-                }
-            })
-        } else if (!flag && text) {
-            this.setState({
-                curInput: {
-                    add: text
+                    add: text,
+                    speed: this.state.curInput.speed
                 }
             })
         } else {
             this.setState({
                 curInput: {
-                    add: ''
+                    add: '',
+                    speed: this.state.curInput.speed
                 }
             })
         }
     }
     add = () => {
         let tempArrays = this.state.arrays ? this.state.arrays : []
-        tempArrays.push(this.state.curInput.add)
-        // console.log('page temp add', this.state, tempArrays)
+        tempArrays.push(parseFloat(this.state.curInput.add))
+        // tempArrays = ArrayUtils.SetDefaultColor(tempArrays)
         this.props.inputArray({
             arrays: tempArrays
         })
         this.setState({
             curInput: {
-                add: ''
+                add: '',
+                speed: this.state.curInput.speed
             },
         })
     }
@@ -142,36 +148,34 @@ class PageTemplate extends Component {
     removeChange = event => {
         const text = event.target.value
         const flag = RegUtils.IsMatch(text)
-        if (flag) {
+        if (!flag && text || flag) {
             this.setState({
                 curInput: {
-                    remove: parseFloat(text)
-                }
-            })
-        } else if (!flag && text) {
-            this.setState({
-                curInput: {
-                    remove: text
+                    remove: text,
+                    speed: this.state.curInput.speed
                 }
             })
         } else {
             this.setState({
                 curInput: {
-                    remove: ''
+                    remove: '',
+                    speed: this.state.curInput.speed
                 }
             })
         }
     }
     remove = () => {
         let tempArrays = this.state.arrays ? this.state.arrays : []
-        tempArrays = ArrayUtils.DeleteItem(tempArrays, this.state.curInput.remove)
-        console.log('page temp add', this.state, tempArrays)
+        console.log('page temp remove0', tempArrays, parseFloat(this.state.curInput.remove))
+        tempArrays = ArrayUtils.DeleteItem(tempArrays, parseFloat(this.state.curInput.remove))
+        console.log('page temp remove', this.state, tempArrays)
         this.props.inputArray({
             arrays: tempArrays
         })
         this.setState({
             curInput: {
-                remove: ''
+                remove: '',
+                speed: this.state.curInput.speed
             },
         })
     }
@@ -183,6 +187,42 @@ class PageTemplate extends Component {
     searchChange = event => {
     }
     search = () => {
+    }
+    
+    /*
+	* todo
+	*  start
+	*/
+    startChange = event => {
+        const text = event.target.value
+        const flag = RegUtils.IsMatch(text)
+        // console.log('page temp startchange', flag, text)
+        if (!flag && text || flag) {
+            this.setState({
+                curInput: {
+                    speed: text
+                }
+            })
+        } else {
+            this.setState({
+                curInput: {
+                    speed: ''
+                }
+            })
+        }
+    }
+    start = () => {
+        const sortingPaths = Sorting(this.state.selectedKeys, this.state.arrays)
+        // console.log('page temp start', sortingPaths)
+        for (let i = 0; i < sortingPaths.length; i++) {
+            console.log('sortingPath', sortingPaths[i])
+            sleep(2000).then(() => {
+                this.props.inputArray({
+                    arrays: sortingPaths[i]
+                })
+            })
+            
+        }
     }
     
     /*
@@ -231,10 +271,20 @@ class PageTemplate extends Component {
     }
     
     componentDidMount() {
-    
     }
-
+    
+    componentWillUpdate(nextProps, nextState, nextContext) {
+        console.log('page temp will', this.state)
+    }
+    
     render() {
+        const isRadio = () => {
+            try {
+                return this.state.openKeys[0] === '/indexing' || this.state.openKeys === '/indexing' ? '' : 'none'
+            } catch (e) {
+                return ''
+            }
+        }
         const container = (
             <Layout className="home">
                 <Layout>
@@ -287,6 +337,16 @@ class PageTemplate extends Component {
                                     !RegUtils.IsMatch(this.state.curInput.search)
                                 )}
                             </div>
+                            <div>
+                                {this.paper(
+                                    'speed',
+                                    this.state.curInput.speed,
+                                    this.startChange,
+                                    <IconFont type='icon-start' />,
+                                    this.start,
+                                    !RegUtils.IsMatch(this.state.curInput.speed)
+                                )}
+                            </div>
                             <div style={{width: 'fit-content'}}>
                                 <Paper
                                     component="form"
@@ -337,7 +397,7 @@ class PageTemplate extends Component {
                             </div>
                             <div style={{
                                 width: 'fit-content',
-                                display: (this.state.openKeys[0] === '/indexing' || this.state.openKeys === '/indexing') ? '' : 'none'
+                                display: isRadio()
                             }}>
                                 <Radios />
                             </div>
@@ -354,6 +414,7 @@ class PageTemplate extends Component {
                                 placeholder=""
                                 autoSize disabled={true}
                                 value={this.state.arrays}
+                                // value={ObjectUtils.GetValues(this.state.arrays, 'value')}
                             />
                         </div>
                         <div className="charts">
